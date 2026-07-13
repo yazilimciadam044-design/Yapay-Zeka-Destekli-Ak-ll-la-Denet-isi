@@ -22,32 +22,84 @@ st.set_page_config(
 # Custom CSS for Premium Design
 st.markdown("""
     <style>
+    /* Genel yazi boyutu ve rengi */
     .main {
         background-color: #0e1117;
-        color: #fafafa;
+        color: #e8eaed;
+        font-size: 18px;
     }
+    /* Tum paragraflar ve metinler */
+    .main p, .main li, .main span, .main div {
+        font-size: 18px !important;
+        color: #e8eaed !important;
+        line-height: 1.8 !important;
+    }
+    /* Basliklar */
+    h1 {
+        color: #4facfe !important;
+        font-size: 36px !important;
+    }
+    h2 {
+        color: #00f2fe !important;
+        font-size: 28px !important;
+    }
+    h3 {
+        color: #7dd3fc !important;
+        font-size: 24px !important;
+    }
+    /* Sidebar yazilari */
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] li {
+        font-size: 16px !important;
+        color: #d1d5db !important;
+    }
+    /* Butonlar */
     .stButton>button {
         background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
         color: white;
         border: none;
         border-radius: 8px;
-        padding: 10px 24px;
+        padding: 12px 28px;
         font-weight: bold;
+        font-size: 18px !important;
         transition: all 0.3s ease 0s;
     }
     .stButton>button:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
     }
+    /* Rapor kutusu */
     .report-box {
-        background-color: #1a1c23;
-        padding: 20px;
+        background-color: #1e2030;
+        padding: 30px;
         border-radius: 12px;
         border-left: 5px solid #4facfe;
         margin-top: 20px;
+        font-size: 18px !important;
+        color: #f0f0f0 !important;
+        line-height: 1.9 !important;
     }
-    h1, h2, h3 {
+    .report-box h1, .report-box h2, .report-box h3 {
         color: #4facfe !important;
+    }
+    .report-box p, .report-box li, .report-box span {
+        color: #f0f0f0 !important;
+        font-size: 18px !important;
+    }
+    /* Input alani */
+    .stTextInput input {
+        font-size: 18px !important;
+        padding: 12px !important;
+    }
+    .stTextInput label {
+        font-size: 18px !important;
+        color: #d1d5db !important;
+    }
+    /* Download butonu */
+    .stDownloadButton>button {
+        font-size: 18px !important;
+        padding: 12px 28px !important;
     }
     </style>
 """, unsafe_allow_html=True)

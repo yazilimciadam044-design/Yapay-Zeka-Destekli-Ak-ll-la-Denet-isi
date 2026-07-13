@@ -133,13 +133,19 @@ Metin:
         return {"yan_etkiler": ["Veri analiz edilemedi"], "kontrendikasyonlar": [], "kirmizi_alarm": False}
 
     @staticmethod
-    def corporate_analyst(ilac_ismi: str) -> str:
+    def corporate_analyst(rag_context: str, ilac_ismi: str) -> str:
         """
         İlaç üreticisi hakkında bilgi toplar.
         """
         print(f"[Corporate-Analyst] Üretici firma araştırması yapılıyor...")
         if groq_client:
-            prompt = f"Lütfen '{ilac_ismi}' adlı ilacın üretici firması, firmanın menşei, tıbbi üretim geçmişi ve genel kurumsal güvenilirliği hakkında son derece detaylı, akademik ve eksiksiz bir kurumsal araştırma raporu sun (En az 2 paragraf)."
+            prompt = f"""Lütfen '{ilac_ismi}' adlı ilacın üretici firması, firmanın menşei, tıbbi üretim geçmişi ve genel kurumsal güvenilirliği hakkında son derece detaylı, akademik ve eksiksiz bir kurumsal araştırma raporu sun (En az 2 paragraf).
+Şu kurala KESİNLİKLE UY: Asla ve asla "[Firma İsmi]", "[Ülke]", "[Kuruluş Yılı]" gibi KÖŞELİ PARANTEZLİ ŞABLON (TEMPLATE) kullanma.
+Aşağıdaki tıbbi prospektüs verisini (RAG Context) referans al ve içerisindeki "Üretici Firma" bilgisine dayanarak gerçek ve kesin bir analiz yap. Eğer veride geçmiyorsa, bilinen gerçek tıbbi verilerine dayanarak kesin isimler kullan.
+
+Prospektüs Verisi:
+{rag_context}
+"""
             try:
                 response = groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
@@ -276,7 +282,7 @@ def run_orchestrator(input_text: str):
     safety_data = Agents.safety_auditor(rag_data, vision_data.get("ilac_ismi", ""))
     
     # 4. Corporate Analyst
-    corporate_data = Agents.corporate_analyst(vision_data.get("ilac_ismi", ""))
+    corporate_data = Agents.corporate_analyst(rag_data, vision_data.get("ilac_ismi", ""))
     
     # 5. Report Synthesizer & Master Orchestrator
     final_report = Agents.report_synthesizer(vision_data, rag_data, safety_data, corporate_data)

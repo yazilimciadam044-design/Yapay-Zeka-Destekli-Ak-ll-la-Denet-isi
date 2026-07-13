@@ -103,8 +103,20 @@ Format: {{"ilac_ismi": "", "etken_madde": "", "dozaj": "", "form": ""}}"""
         query = f"{ilac_ismi} {etken_madde} prospektüs endikasyon yan etkiler dozaj"
         docs = retriever.invoke(query)
         
-        context = "\\n\\n".join([doc.page_content for doc in docs])
-        return context if context else "Bu ilaçla ilgili yerel veritabanında (PDF) bilgi bulunamadı."
+        # PROGRAMMATİK FACT-CHECKER (SIFIR HALÜSİNASYON)
+        # Vektör araması bazen ilgisiz en yakın sonucu (örn: Matofin yerine Ketya) getirebilir.
+        # İlacın ana isminin metinde geçip geçmediğini zorunlu olarak kontrol ediyoruz.
+        ilac_ana_isim = ilac_ismi.strip().split()[0].lower() if ilac_ismi else ""
+        
+        context = ""
+        for doc in docs:
+            if ilac_ana_isim and ilac_ana_isim in doc.page_content.lower():
+                context += doc.page_content + "\\n\\n"
+                
+        if not context:
+            return f"UYARI (VERİ YOK): '{ilac_ismi}' adlı ilacın güvenilir FDA/TİTCK onaylı prospektüsü veritabanında bulunamadı. Lütfen ilacın PDF prospektüsünü 'data/corpus' klasörüne yükleyiniz."
+            
+        return context
 
     @staticmethod
     def safety_auditor(rag_context: str, ilac_ismi: str) -> dict:
@@ -112,6 +124,10 @@ Format: {{"ilac_ismi": "", "etken_madde": "", "dozaj": "", "form": ""}}"""
         RAG verisindeki yan etkileri ve kontrendikasyonları denetler.
         """
         print(f"[Safety-Auditor] '{ilac_ismi}' için güvenlik denetimi yapılıyor...")
+        
+        if "UYARI (VERİ YOK)" in rag_context:
+            return {"yan_etkiler": ["Veritabanında prospektüs bulunmadığı için analiz edilemedi."], "kontrendikasyonlar": ["Veri yok"], "kirmizi_alarm": False}
+
         if groq_client:
             prompt = f"""Aşağıdaki prospektüs metnine göre '{ilac_ismi}' için 'Yan Etkiler' ve 'Kimler Kullanamaz' bilgilerini çok katı ve eksiksiz bir disiplinle analiz et. Metinde geçen TÜM yan etkileri ve TÜM kontrendikasyonları hiçbir eksiltme yapmadan listele. Eğer ciddi bir risk (hamilelik, kalp krizi, intihar, mide kanaması vs) varsa kirmizi_alarm: true yap. SADECE JSON formatında dön: {{"yan_etkiler": ["etki 1", "etki 2", ...], "kontrendikasyonlar": ["durum 1", "durum 2", ...], "kirmizi_alarm": true/false}}
 
@@ -138,6 +154,10 @@ Metin:
         İlaç üreticisi hakkında bilgi toplar.
         """
         print(f"[Corporate-Analyst] Üretici firma araştırması yapılıyor...")
+        
+        if "UYARI (VERİ YOK)" in rag_context:
+            return f"Firma bilgisi çıkarılamadı çünkü '{ilac_ismi}' ilacı veritabanında mevcut değil. Başka bir ilaca ait verilerin (halüsinasyon) sunulması engellendi."
+
         if groq_client:
             prompt = f"""Lütfen '{ilac_ismi}' adlı ilacın üretici firması, firmanın menşei, tıbbi üretim geçmişi ve genel kurumsal güvenilirliği hakkında son derece detaylı, akademik ve eksiksiz bir kurumsal araştırma raporu sun (En az 2 paragraf).
 Şu kurala KESİNLİKLE UY: Asla ve asla "[Firma İsmi]", "[Ülke]", "[Kuruluş Yılı]" gibi KÖŞELİ PARANTEZLİ ŞABLON (TEMPLATE) kullanma.

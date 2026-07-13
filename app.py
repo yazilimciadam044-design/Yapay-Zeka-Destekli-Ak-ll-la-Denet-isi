@@ -1,0 +1,131 @@
+import streamlit as st
+import os
+from agents import run_orchestrator
+from utils import generate_pdf_report, init_rag_database
+
+# Sayfa Ayarları
+st.set_page_config(
+    page_title="Pharma-Guard AI",
+    page_icon="💊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for Premium Design
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
+    .stButton>button {
+        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 24px;
+        font-weight: bold;
+        transition: all 0.3s ease 0s;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+    }
+    .report-box {
+        background-color: #1a1c23;
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 5px solid #4facfe;
+        margin-top: 20px;
+    }
+    h1, h2, h3 {
+        color: #4facfe !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Sidebar
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2966/2966327.png", width=100)
+    st.title("Pharma-Guard AI")
+    st.markdown("Yapay Zeka Destekli Akıllı İlaç Denetçisi")
+    st.divider()
+    st.markdown("### Sistem Durumu")
+    
+    # RAG Veritabanı Başlatma Modülü
+    if st.button("🔄 RAG Veritabanını Güncelle"):
+        with st.spinner("PDF'ler taranıyor ve vektörleştiriliyor..."):
+            db = init_rag_database()
+            if db:
+                st.success("Veritabanı güncellendi!")
+            else:
+                st.warning("data/corpus/ dizininde PDF bulunamadı.")
+                
+    st.info("💡 Ajanlar hazır. (Groq/Llama-3, LLaVA-Mock, RAG)")
+
+# Ana Ekran
+st.title("💊 Akıllı İlaç Denetimi")
+st.markdown("Lütfen denetlemek istediğiniz ilacın ismini veya fotoğrafını (metin olarak) giriniz.")
+
+# Input Alanı
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    input_text = st.text_input("İlaç İsmi / Etken Madde (Örn: Parasetamol 500mg)", placeholder="İlaç adını buraya yazın...")
+    # image_file = st.file_uploader("Veya İlaç Fotoğrafı Yükleyin", type=['png', 'jpg', 'jpeg'])
+
+with col2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    start_btn = st.button("🚀 Denetimi Başlat", use_container_width=True)
+
+if start_btn:
+    if not input_text:
+        st.error("Lütfen bir ilaç ismi giriniz!")
+    else:
+        st.markdown("---")
+        
+        # Ajanların çalıştığını gösteren animasyonlu yapı
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.markdown("🕵️ **[Vision-Scanner]** Giriş verisi analiz ediliyor...")
+        progress_bar.progress(20)
+        
+        status_text.markdown("📚 **[RAG-Specialist]** Tıbbi prospektüs veritabanı taranıyor...")
+        progress_bar.progress(40)
+        
+        status_text.markdown("⚠️ **[Safety-Auditor]** Kontrendikasyonlar ve riskler denetleniyor...")
+        progress_bar.progress(60)
+        
+        status_text.markdown("🏢 **[Corporate-Analyst]** Üretici profili çıkarılıyor...")
+        progress_bar.progress(80)
+        
+        status_text.markdown("🧠 **[PG-MO]** Master Orkestratör (Groq) raporu sentezliyor...")
+        
+        try:
+            # Backend çağrısı
+            final_report = run_orchestrator(input_text)
+            progress_bar.progress(100)
+            status_text.success("Denetim Tamamlandı!")
+            
+            # Raporu Ekrana Bas
+            st.markdown("### 📋 Analiz Raporu")
+            st.markdown(f'<div class="report-box">{final_report}</div>', unsafe_allow_html=True)
+            
+            # PDF Oluştur ve İndir Butonu
+            with st.spinner("PDF Raporu hazırlanıyor..."):
+                pdf_path = generate_pdf_report(final_report)
+                
+                with open(pdf_path, "rb") as pdf_file:
+                    PDFbyte = pdf_file.read()
+                    
+                st.download_button(
+                    label="📄 PDF Olarak İndir",
+                    data=PDFbyte,
+                    file_name="pharma_guard_rapor.pdf",
+                    mime="application/octet-stream"
+                )
+                
+        except Exception as e:
+            st.error(f"Sistem Hatası: {e}")
+

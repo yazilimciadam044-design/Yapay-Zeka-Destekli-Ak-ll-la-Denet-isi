@@ -34,7 +34,6 @@ class ReportPDF(FPDF):
         # Unicode destekli fontu tanimla (bir kere)
         font_regular = _get_font_path("")
         font_bold = _get_font_path("B")
-        font_italic = _get_font_path("I")
         
         self._has_unicode_font = False
         if font_regular:
@@ -42,24 +41,22 @@ class ReportPDF(FPDF):
             self._has_unicode_font = True
         if font_bold:
             self.add_font('UnicodeFont', 'B', font_bold)
-        if font_italic:
-            self.add_font('UnicodeFont', 'I', font_italic)
 
     def header(self):
         if self._has_unicode_font:
             self.set_font('UnicodeFont', 'B', 15)
         else:
             self.set_font('Helvetica', 'B', 15)
-        self.cell(0, 10, 'Pharma-Guard AI - Akıllı İlaç Denetçisi Raporu', 0, 1, 'C')
+        self.cell(0, 10, 'Pharma-Guard AI - Akilli Ilac Denetcisi Raporu', 0, 1, 'C')
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
         if self._has_unicode_font:
-            self.set_font('UnicodeFont', 'I', 8)
+            self.set_font('UnicodeFont', '', 8)
         else:
-            self.set_font('Helvetica', 'I', 8)
-        self.cell(0, 10, f'Sayfa {self.page_no()}/{{nb}} - DİKKAT: Bilgiler %100 doğrulanamadı, profesyonel yardım alın', 0, 0, 'C')
+            self.set_font('Helvetica', '', 8)
+        self.cell(0, 10, f'Sayfa {self.page_no()}/{{nb}} - DIKKAT: Bilgiler dogrulanamadi, profesyonel yardim alin', 0, 0, 'C')
 
 def generate_pdf_report(report_content: str, output_path: str = None) -> str:
     """

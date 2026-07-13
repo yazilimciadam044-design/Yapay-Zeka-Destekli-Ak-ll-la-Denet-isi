@@ -22,12 +22,14 @@ AŞAĞIDAKİ 5 ALT AJANI AYNI ANDA KOORDİNE ET:
 
 1. [Vision-Scanner]: LLaVA mimarisini kullanarak görseli tara. İlaç ismi (Ticari Ad), Etken Madde (Kimyasal Ad), Dozaj (mg/ml), Form (Tablet/Şurup) ve varsa Barkod bilgilerini JSON formatında ana belleğe aktar.
 2. [RAG-Specialist]: "data/corpus/" dizinindeki PDF prospektüsleri semantik olarak tara. İnternetteki genel yorumları değil, sadece TİTCK ve FDA onaylı prospektüs verilerini kaynak al.
-3. [Safety-Auditor]: İlacın "Yan Etkiler", "Diğer İlaçlarla Etkileşim" ve "Kimler Kullanamaz" kısımlarını kontrol et. Kritik bir risk (örn: hamilelikte kullanım, yüksek tansiyon uyarısı) tespit edersen "KIRMIZI ALARM" etiketi oluştur.
-4. [Corporate-Analyst]: İlacı üreten firmanın geçmişini, üretim sertifikalarını ve menşe ülkesini raporla.
+3. [Safety-Auditor]: İlacın "Yan Etkiler", "Diğer İlaçlarla Etkileşim" ve "Kimler Kullanamaz" kısımlarını derinlemesine analiz et. Kritik bir risk (örn: hamilelikte kullanım, yüksek tansiyon uyarısı, ilaç etkileşimleri) tespit edersen "KIRMIZI ALARM" etiketi oluştur.
+4. [Corporate-Analyst]: İlacı üreten firmanın geçmişini, üretim sertifikalarını (GMP, FDA onayı vb.), menşe ülkesini ve kurumsal tıbbi itibarını detaylı bir şekilde raporla.
 5. [Report-Synthesizer]: Tum ajanlardan gelen veriyi birlestir. Llama-4 Scout (Groq) gucunde detayli, eksiksiz ve derinlikli bir analiz raporu hazirla.
 
 ### OPERASYONEL PROTOKOLLER VE KISITLAMALAR:
+- SIFIR VERİ KAYBI (ZERO DATA LOSS): Bulduğun hiçbir detayı özetleme, kırpma veya eksiltme. Disiplinli, akademik ve son derece detaylı bir rapor oluştur.
 - GÜVEN PUANI (Confidence Score): Her bilgi parçası için 1-10 arası bir puan ver. Eğer ortalama güven 8'in altındaysa raporun başına "DİKKAT: Bilgiler %100 doğrulanamadı, profesyonel yardım alın" uyarısı ekle.
+- FORMAT: Hiyerarşik başlıklar (Markdown), net madde işaretleri (bullet points) ve profesyonel/akademik bir Tıp dili kullan. Uzun, tatmin edici ve tıbbi açıdan eksiksiz olmalı.
 - HALÜSİNASYON ENGELİ: Eğer ilacın etken maddesi ile prospektüs bilgisi eşleşmiyorsa, 'Fact-Checker' devreye girsin ve süreci durdurup hata mesajı versin.
 - DİL VE ÜSLUP: Rapor tamamen Türkçe, tıbbi terimleri parantez içinde açıklayan, güven veren ve profesyonel bir tonda olmalıdır.
 - İNDİRME FORMATI: Çıktıyı, "İndirilebilir Rapor" için uygun bir Markdown hiyerarşisinde sun.
@@ -69,9 +71,14 @@ Format: {{"ilac_ismi": "", "etken_madde": "", "dozaj": "", "form": ""}}"""
                     temperature=0.1
                 )
                 try:
-                    return json.loads(response.choices[0].message.content)
-                except:
-                    pass
+                    content = response.choices[0].message.content.strip()
+                    if content.startswith("```json"):
+                        content = content.replace("```json", "").replace("```", "").strip()
+                    elif content.startswith("```"):
+                        content = content.replace("```", "").strip()
+                    return json.loads(content)
+                except Exception as parse_e:
+                    print("JSON Parse Hatası:", parse_e)
             except Exception as e:
                 print("Groq API Hatası:", e)
                 
@@ -106,7 +113,7 @@ Format: {{"ilac_ismi": "", "etken_madde": "", "dozaj": "", "form": ""}}"""
         """
         print(f"[Safety-Auditor] '{ilac_ismi}' için güvenlik denetimi yapılıyor...")
         if groq_client:
-            prompt = f"""Aşağıdaki prospektüs metnine göre '{ilac_ismi}' için 'Yan Etkiler' ve 'Kimler Kullanamaz' bilgilerini analiz et. Eğer ciddi bir risk (hamilelik, kalp krizi vs) varsa kirmizi_alarm: true yap. SADECE JSON formatında dön: {{"yan_etkiler": [], "kontrendikasyonlar": [], "kirmizi_alarm": true/false}}
+            prompt = f"""Aşağıdaki prospektüs metnine göre '{ilac_ismi}' için 'Yan Etkiler' ve 'Kimler Kullanamaz' bilgilerini çok katı ve eksiksiz bir disiplinle analiz et. Metinde geçen TÜM yan etkileri ve TÜM kontrendikasyonları hiçbir eksiltme yapmadan listele. Eğer ciddi bir risk (hamilelik, kalp krizi, intihar, mide kanaması vs) varsa kirmizi_alarm: true yap. SADECE JSON formatında dön: {{"yan_etkiler": ["etki 1", "etki 2", ...], "kontrendikasyonlar": ["durum 1", "durum 2", ...], "kirmizi_alarm": true/false}}
 
 Metin:
 {rag_context}"""
@@ -132,7 +139,7 @@ Metin:
         """
         print(f"[Corporate-Analyst] Üretici firma araştırması yapılıyor...")
         if groq_client:
-            prompt = f"Lütfen '{ilac_ismi}' adlı ilacın üretici firması, menşei ve genel güvenilirliği hakkında 2-3 cümlelik kısa bir kurumsal bilgi ver."
+            prompt = f"Lütfen '{ilac_ismi}' adlı ilacın üretici firması, firmanın menşei, tıbbi üretim geçmişi ve genel kurumsal güvenilirliği hakkında son derece detaylı, akademik ve eksiksiz bir kurumsal araştırma raporu sun (En az 2 paragraf)."
             try:
                 response = groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],

@@ -1,5 +1,14 @@
-import streamlit as st
 import os
+import sys
+
+# Streamlit Cloud SQLite3 (ChromaDB) Fix
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
+import streamlit as st
 from agents import run_orchestrator
 from utils import generate_pdf_report, init_rag_database
 

@@ -56,12 +56,19 @@ st.markdown("""
         color: #7dd3fc !important;
         font-size: 24px !important;
     }
-    /* Sidebar yazilari */
+    /* Sidebar yazilari ve arka plani */
+    section[data-testid="stSidebar"] {
+        background-color: #1a1c24 !important;
+    }
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] li {
+    section[data-testid="stSidebar"] li,
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
         font-size: 16px !important;
-        color: #d1d5db !important;
+        color: #ffffff !important;
     }
     /* Butonlar */
     .stButton>button {

@@ -99,8 +99,9 @@ Format: {{"ilac_ismi": "", "etken_madde": "", "dozaj": "", "form": ""}}"""
         if not retriever:
             return "RAG Sistemi aktif değil (PDF veritabanı bulunamadı)."
             
-        print(f"[RAG-Specialist] '{ilac_ismi}' için RAG taraması yapılıyor...")
-        query = f"{ilac_ismi} {etken_madde} prospektüs endikasyon yan etkiler dozaj"
+        # Temiz query oluştur (Veri yok gibi kelimeler aramayı bozmasın)
+        clean_etken = "" if etken_madde.lower() in ["veri yok", "bilinmiyor", "none"] else etken_madde
+        query = f"{ilac_ismi} {clean_etken} prospektüs endikasyon yan etkiler dozaj"
         docs = retriever.invoke(query)
         
         # PROGRAMMATİK FACT-CHECKER (SIFIR HALÜSİNASYON)

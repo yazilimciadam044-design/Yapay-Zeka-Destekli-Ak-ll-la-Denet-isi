@@ -13,11 +13,12 @@ from agents import run_orchestrator
 from utils import generate_pdf_report, init_rag_database
 
 # Streamlit Cloud'da ilk başlatmada otomatik PDF ve RAG veritabanı oluştur
-if not os.path.exists("data/corpus") or len([f for f in os.listdir("data/corpus") if f.endswith('.pdf')]) == 0:
+pdf_count = len([f for f in os.listdir("data/corpus") if f.endswith('.pdf')]) if os.path.exists("data/corpus") else 0
+if pdf_count < 5:
     from create_dummy_pdf import main as create_pdfs
     create_pdfs()
-
-if not os.path.exists("data/chroma_db"):
+    init_rag_database()
+elif not os.path.exists("data/chroma_db"):
     init_rag_database()
 
 # Sayfa Ayarları
@@ -186,7 +187,8 @@ if start_btn:
             
             # Raporu Ekrana Bas
             st.markdown("### 📋 Analiz Raporu")
-            st.markdown(f'<div class="report-box">{final_report}</div>', unsafe_allow_html=True)
+            st.info("Aşağıdaki rapor AI tarafından sentezlenmiştir:")
+            st.markdown(final_report)
             
             # PDF Oluştur ve İndir Butonu
             with st.spinner("PDF Raporu hazırlanıyor..."):

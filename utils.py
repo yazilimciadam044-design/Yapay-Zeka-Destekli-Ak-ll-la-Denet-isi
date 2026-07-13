@@ -121,5 +121,5 @@ def get_rag_retriever(persist_directory: str = "data/chroma_db"):
         
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-    return db.as_retriever(search_kwargs={"k": 3})
+    return db.as_retriever(search_kwargs={"k": 5})
 

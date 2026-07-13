@@ -1,26 +1,64 @@
 import os
+import sys
 from fpdf import FPDF
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 import tempfile
 
+def _get_font_path(style=""):
+    """Windows ve Linux'ta uygun Unicode font dosyasını bul."""
+    # Windows fontları
+    win_fonts = {
+        "": r"C:\Windows\Fonts\arial.ttf",
+        "B": r"C:\Windows\Fonts\arialbd.ttf",
+        "I": r"C:\Windows\Fonts\ariali.ttf",
+    }
+    if sys.platform == "win32" and os.path.exists(win_fonts.get(style, "")):
+        return win_fonts[style]
+    
+    # Linux (Streamlit Cloud) - DejaVuSans kullan
+    linux_fonts = {
+        "": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "B": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "I": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    }
+    if os.path.exists(linux_fonts.get(style, "")):
+        return linux_fonts[style]
+    
+    return None
+
 class ReportPDF(FPDF):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Arial fontunu tanimla (bir kere)
-        self.add_font('ArialCustom', '', r"C:\Windows\Fonts\arial.ttf")
-        self.add_font('ArialCustom', 'B', r"C:\Windows\Fonts\arialbd.ttf")
-        self.add_font('ArialCustom', 'I', r"C:\Windows\Fonts\ariali.ttf")
+        # Unicode destekli fontu tanimla (bir kere)
+        font_regular = _get_font_path("")
+        font_bold = _get_font_path("B")
+        font_italic = _get_font_path("I")
+        
+        self._has_unicode_font = False
+        if font_regular:
+            self.add_font('UnicodeFont', '', font_regular)
+            self._has_unicode_font = True
+        if font_bold:
+            self.add_font('UnicodeFont', 'B', font_bold)
+        if font_italic:
+            self.add_font('UnicodeFont', 'I', font_italic)
 
     def header(self):
-        self.set_font('ArialCustom', 'B', 15)
+        if self._has_unicode_font:
+            self.set_font('UnicodeFont', 'B', 15)
+        else:
+            self.set_font('Helvetica', 'B', 15)
         self.cell(0, 10, 'Pharma-Guard AI - Akıllı İlaç Denetçisi Raporu', 0, 1, 'C')
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('ArialCustom', 'I', 8)
+        if self._has_unicode_font:
+            self.set_font('UnicodeFont', 'I', 8)
+        else:
+            self.set_font('Helvetica', 'I', 8)
         self.cell(0, 10, f'Sayfa {self.page_no()}/{{nb}} - DİKKAT: Bilgiler %100 doğrulanamadı, profesyonel yardım alın', 0, 0, 'C')
 
 def generate_pdf_report(report_content: str, output_path: str = None) -> str:
@@ -28,15 +66,18 @@ def generate_pdf_report(report_content: str, output_path: str = None) -> str:
     Rapor içeriğini PDF formatına çevirip kaydeder.
     Eğer output_path verilmezse geçici bir dosya yolu döndürür.
     """
-    import unidecode
     pdf = ReportPDF()
     pdf.alias_nb_pages()
     pdf.add_page()
     
-    pdf.set_font('ArialCustom', '', 12)
-    
-    # Doğrudan Türkçe karakterli gerçek raporu yazdır
-    pdf.multi_cell(0, 10, txt=report_content)
+    if pdf._has_unicode_font:
+        pdf.set_font('UnicodeFont', '', 12)
+        pdf.multi_cell(0, 10, txt=report_content)
+    else:
+        # Fallback: unidecode ile Türkçe karakterleri ASCII'ye çevir
+        import unidecode
+        pdf.set_font('Helvetica', '', 12)
+        pdf.multi_cell(0, 10, txt=unidecode.unidecode(report_content))
     
     if output_path is None:
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")

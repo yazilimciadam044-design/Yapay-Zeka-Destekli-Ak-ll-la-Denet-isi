@@ -3,6 +3,14 @@ import os
 from agents import run_orchestrator
 from utils import generate_pdf_report, init_rag_database
 
+# Streamlit Cloud'da ilk başlatmada otomatik PDF ve RAG veritabanı oluştur
+if not os.path.exists("data/corpus") or len([f for f in os.listdir("data/corpus") if f.endswith('.pdf')]) == 0:
+    from create_dummy_pdf import main as create_pdfs
+    create_pdfs()
+
+if not os.path.exists("data/chroma_db"):
+    init_rag_database()
+
 # Sayfa Ayarları
 st.set_page_config(
     page_title="Pharma-Guard AI",

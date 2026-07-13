@@ -6,16 +6,22 @@ from langchain_huggingface import HuggingFaceEmbeddings
 import tempfile
 
 class ReportPDF(FPDF):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Arial fontunu tanimla (bir kere)
+        self.add_font('ArialCustom', '', r"C:\Windows\Fonts\arial.ttf")
+        self.add_font('ArialCustom', 'B', r"C:\Windows\Fonts\arialbd.ttf")
+        self.add_font('ArialCustom', 'I', r"C:\Windows\Fonts\ariali.ttf")
+
     def header(self):
-        # Logo could be added here if available
-        self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'Pharma-Guard AI - Akilli Ilac Denetcisi Raporu', 0, 1, 'C')
+        self.set_font('ArialCustom', 'B', 15)
+        self.cell(0, 10, 'Pharma-Guard AI - Akıllı İlaç Denetçisi Raporu', 0, 1, 'C')
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Sayfa {self.page_no()}/{{nb}} - DIKKAT: Bilgiler %100 dogrulanamadi, profesyonel yardim alin', 0, 0, 'C')
+        self.set_font('ArialCustom', 'I', 8)
+        self.cell(0, 10, f'Sayfa {self.page_no()}/{{nb}} - DİKKAT: Bilgiler %100 doğrulanamadı, profesyonel yardım alın', 0, 0, 'C')
 
 def generate_pdf_report(report_content: str, output_path: str = None) -> str:
     """
@@ -27,18 +33,10 @@ def generate_pdf_report(report_content: str, output_path: str = None) -> str:
     pdf.alias_nb_pages()
     pdf.add_page()
     
-    # Türkçe karakter sorununu çözmek için font ekleme (Arial)
-    # Sistemde varsayılan Arial yoksa DejaVu veya Unicode destekli font gereklidir.
-    # Şimdilik standart arial/helvetica ile ilerleyelim. Metni ingilizce karakterlere çevirmek veya
-    # unicode_latin_1 encoding kullanmak gerekebilir. Basitlik için latin1 kullanıyoruz.
-    pdf.set_font('Helvetica', '', 12)
+    pdf.set_font('ArialCustom', '', 12)
     
-    # Unicode encode/decode işlerini basitleştirmek adına unidecode kullanıyoruz:
-    # Bu sayede "İlaç Özeti" -> "Ilac Ozeti" haline gelir ve PDF'te '?' çıkmaz.
-    safe_text = unidecode.unidecode(report_content)
-    
-    # Metni satır satır yazdır
-    pdf.multi_cell(0, 10, txt=safe_text)
+    # Doğrudan Türkçe karakterli gerçek raporu yazdır
+    pdf.multi_cell(0, 10, txt=report_content)
     
     if output_path is None:
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
